@@ -1,6 +1,6 @@
 import { useState, useRef } from "react";
 
-const API = "http://localhost:8000";
+const API = "https://curiosityengine.onrender.com";
 
 const MODES = [
   { id: "paste",  label: "Paste content" },
