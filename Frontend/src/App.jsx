@@ -4,7 +4,7 @@ import QuestionPanel from "./QuestionPanel";
 import FeedbackCard from "./FeedbackCard";
 import "./App.css";
 
-const API = "http://localhost:8000";
+const API = "https://curiosityengine.onrender.com";
 
 export default function App() {
   const [content, setContent] = useState("");
