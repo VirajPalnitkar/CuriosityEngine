@@ -1,6 +1,6 @@
 # Curiosity Engine
 
-A minimal tool that helps students think critically by generating Bloom's Taxonomy questions, evaluating student questions, and guiding deeper inquiry.
+A minimal tool that helps students think critically by generating questions, evaluating student questions, and guiding deeper inquiry.
 
 ## Project structure
 
@@ -31,7 +31,7 @@ source venv/bin/activate      # Windows: venv\Scripts\activate
 pip install -r requirements.txt
 
 # Create .env file
-echo "ANTHROPIC_API_KEY=your_key_here" > .env
+echo "GROQ_API_KEY=your_key_here" > .env
 
 uvicorn main:app --reload
 # Running at http://localhost:8000
@@ -54,7 +54,7 @@ npm run dev
 
 | Endpoint | What it does |
 |---|---|
-| `POST /generate` | Sends your content to Claude, returns 5 questions across Bloom's levels |
+| `POST /generate` | Sends your content to Groqe, returns 5 questions across Bloom's levels |
 | `POST /evaluate` | Scores your question on depth + relevance, returns a stronger rewrite |
 | `POST /followup` | Takes your answer, returns 2 deeper follow-up questions |
 | `GET /session/:id` | Returns the list of questions you've asked this session |
@@ -64,7 +64,7 @@ All session state is stored in a Python dict in memory — no database needed.
 ## Usage flow
 
 1. Paste a lesson or article into the content box
-2. Click **Generate questions** — Claude produces 5 questions from recall to evaluation level
+2. Click **Generate questions** — LLM produces 5 questions from recall to evaluation level
 3. Click any question to copy it into the input, or write your own
-4. Click **Evaluate my question** — Claude scores it and shows a stronger version
+4. Click **Evaluate my question** — LLM scores it and shows a stronger version
 5. Write your answer to the stronger question, then click **Go deeper** for follow-up prompts
