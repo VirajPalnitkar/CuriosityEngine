@@ -1,7 +1,6 @@
 from fastapi import FastAPI, HTTPException, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from anthropic import Anthropic
 from dotenv import load_dotenv
 import json
 import uuid
@@ -9,6 +8,7 @@ import os
 from io import BytesIO
 from pypdf import PdfReader
 import httpx
+import requests
 
 
 load_dotenv(encoding="utf-8")
@@ -17,7 +17,6 @@ TAVILY_API_KEY = os.getenv("TAVILY_API_KEY")
 
 
 app = FastAPI()
-client = Anthropic()
 
 app.add_middleware(
     CORSMiddleware,
@@ -52,12 +51,7 @@ class TopicRequest(BaseModel):
 # ---------- Claude helper ----------
 
 
-import requests
-import json
 
-import requests
-import json
-import os
 
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 GROQ_URL = "https://api.groq.com/openai/v1/chat/completions"
