@@ -306,6 +306,29 @@ Schema: {"depth": 1-5, "relevance": 1-5, "reason": "...", "rewrite": "...", "blo
 
 @app.post("/followup")
 def followup_questions(req: FollowupRequest):
+    # Step 1 — relevance guard
+    guard_system = """You are an educational relevance checker.
+Decide whether a student's answer is relevant to both the question asked and the content provided.
+An answer is irrelevant if it talks about a completely different subject, is nonsensical, or clearly ignores the question.
+A short, incomplete, or imperfect answer that is still on-topic counts as relevant.
+
+Return ONLY valid JSON. No explanation, no markdown.
+Schema: {"relevant": true|false, "reason": "one sentence explaining your decision"}"""
+
+    guard_user = (
+        f"Content topic:\n{req.content[:600]}\n\n"
+        f"Question: {req.question}\n\n"
+        f"Student's answer: {req.answer}"
+    )
+    guard = ask_llm(guard_system, guard_user)
+
+    if not guard.get("relevant", True):
+        raise HTTPException(
+            status_code=422,
+            detail=f"Your answer doesn't seem related to the topic. {guard.get('reason', '')} Try answering the question directly."
+        )
+
+    # Step 2 — generate follow-ups only if relevant
     system = """You are a Socratic tutor deepening a student's inquiry.
 Given a question and the student's answer, generate exactly 2 follow-up questions that:
 - push the student one level deeper in Bloom's Taxonomy

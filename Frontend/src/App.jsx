@@ -4,17 +4,19 @@ import QuestionPanel from "./QuestionPanel";
 import FeedbackCard from "./FeedbackCard";
 import "./App.css";
 
-const API = "https://curiosityengine.onrender.com";
+const API = "http://localhost:8000";
 
 export default function App() {
-  const [content, setContent] = useState("");
-  const [sessionId, setSessionId] = useState(null);
-  const [questions, setQuestions] = useState([]);
-  const [feedback, setFeedback] = useState(null);
-  const [followups, setFollowups] = useState([]);
-  const [history, setHistory] = useState([]);
-  const [loading, setLoading] = useState({ generate: false, evaluate: false, followup: false });
-  const [error, setError] = useState(null);
+  const [content, setContent]             = useState("");
+  const [sessionId, setSessionId]         = useState(null);
+  const [questions, setQuestions]         = useState([]);
+  const [feedback, setFeedback]           = useState(null);
+  const [followups, setFollowups]         = useState([]);
+  const [followupWarning, setFollowupWarning] = useState(null);
+  const [history, setHistory]             = useState([]);
+  const [rightTab, setRightTab]           = useState("questions");
+  const [loading, setLoading]             = useState({ generate: false, evaluate: false, followup: false });
+  const [error, setError]                 = useState(null);
 
   const setLoadingKey = (key, val) =>
     setLoading((prev) => ({ ...prev, [key]: val }));
@@ -26,11 +28,13 @@ export default function App() {
     setQuestions([]);
     setFeedback(null);
     setFollowups([]);
+    setFollowupWarning(null);
+    setRightTab("questions");
     try {
-      const res = await fetch(`${API}/generate`, {
-        method: "POST",
+      const res  = await fetch(`${API}/generate`, {
+        method:  "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content, session_id: sessionId }),
+        body:    JSON.stringify({ content, session_id: sessionId }),
       });
       const data = await res.json();
       setSessionId(data.session_id);
@@ -47,16 +51,18 @@ export default function App() {
     setError(null);
     setFeedback(null);
     setFollowups([]);
+    setFollowupWarning(null);
     try {
-      const res = await fetch(`${API}/evaluate`, {
-        method: "POST",
+      const res  = await fetch(`${API}/evaluate`, {
+        method:  "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ student_question: studentQuestion, content, session_id: sessionId }),
+        body:    JSON.stringify({ student_question: studentQuestion, content, session_id: sessionId }),
       });
       const data = await res.json();
       setSessionId(data.session_id);
       setFeedback(data);
       setHistory((prev) => [studentQuestion, ...prev]);
+      setRightTab("feedback");
     } catch {
       setError("Evaluation failed. Check the backend.");
     } finally {
@@ -67,13 +73,20 @@ export default function App() {
   async function handleFollowup(question, answer) {
     setLoadingKey("followup", true);
     setError(null);
+    setFollowups([]);
+    setFollowupWarning(null);
     try {
-      const res = await fetch(`${API}/followup`, {
-        method: "POST",
+      const res  = await fetch(`${API}/followup`, {
+        method:  "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ question, answer, content }),
+        body:    JSON.stringify({ question, answer, content }),
       });
       const data = await res.json();
+      if (res.status === 422) {
+        setFollowupWarning(data.detail);
+        return;
+      }
+      if (!res.ok) throw new Error(data.detail || "Follow-up generation failed.");
       setFollowups(data.followups);
     } catch {
       setError("Follow-up generation failed.");
@@ -83,51 +96,91 @@ export default function App() {
   }
 
   return (
-    <div className="app">
-      <header className="app-header">
-        <span className="logo-mark">◎</span>
-        <h1>Curiosity Engine</h1>
+    <div className="shell">
+
+      <header className="topbar">
+        <div className="topbar-brand">
+          <span className="logo-mark">◎</span>
+          <span className="logo-name">Curiosity Engine</span>
+        </div>
+        {error && (
+          <div className="topbar-error" onClick={() => setError(null)}>
+            {error} <span className="error-dismiss">×</span>
+          </div>
+        )}
         <p className="tagline">Think deeper. Ask better.</p>
       </header>
 
-      {error && <div className="error-banner">{error}</div>}
+      <div className="workspace">
 
-      <main className="app-body">
-        <section className="col-left">
+        <div className="pane pane-left">
           <ContentViewer
             content={content}
             onChange={setContent}
             onGenerate={handleGenerate}
             loading={loading.generate}
           />
-          {history.length > 0 && (
-            <div className="history-box">
-              <p className="section-label">Your questions this session</p>
-              <ul>
-                {history.map((q, i) => (
-                  <li key={i}>{q}</li>
-                ))}
-              </ul>
-            </div>
-          )}
-        </section>
+        </div>
 
-        <section className="col-right">
+        <div className="pane pane-mid">
           <QuestionPanel
             questions={questions}
             onEvaluate={handleEvaluate}
             loading={loading.evaluate}
           />
-          {feedback && (
-            <FeedbackCard
-              feedback={feedback}
-              onFollowup={handleFollowup}
-              followups={followups}
-              loading={loading.followup}
-            />
-          )}
-        </section>
-      </main>
+        </div>
+
+        <div className="pane pane-right">
+          <div className="pane-tabs">
+            <button
+              className={`pane-tab ${rightTab === "feedback" ? "active" : ""}`}
+              onClick={() => setRightTab("feedback")}
+            >
+              Feedback
+              {feedback && rightTab !== "feedback" && <span className="tab-dot" />}
+            </button>
+            <button
+              className={`pane-tab ${rightTab === "history" ? "active" : ""}`}
+              onClick={() => setRightTab("history")}
+            >
+              History
+              {history.length > 0 && <span className="tab-count">{history.length}</span>}
+            </button>
+          </div>
+
+          <div className="pane-body">
+            {rightTab === "feedback" && (
+              <FeedbackCard
+                feedback={feedback}
+                onFollowup={handleFollowup}
+                followups={followups}
+                followupWarning={followupWarning}
+                loading={loading.followup}
+              />
+            )}
+            {rightTab === "history" && (
+              <div className="history-pane">
+                {history.length === 0 ? (
+                  <div className="empty-state">
+                    <span className="empty-icon">↺</span>
+                    <p>Questions you submit will appear here.</p>
+                  </div>
+                ) : (
+                  <ul className="history-list">
+                    {history.map((q, i) => (
+                      <li key={i} className="history-item">
+                        <span className="history-num">{history.length - i}</span>
+                        <span>{q}</span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+
+      </div>
     </div>
   );
 }
