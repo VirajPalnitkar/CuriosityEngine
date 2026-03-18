@@ -7,9 +7,9 @@ A minimal tool that helps students think critically by generating questions, eva
 ```
 curiosity-engine/
 ├── backend/
-│   ├── main.py           ← entire FastAPI backend (3 endpoints)
+│   ├── main.py           ← entire FastAPI backend (5 endpoints)
 │   ├── requirements.txt
-│   └── .env              ← you create this (see below)
+│   └── .env              
 └── frontend/
     └── src/
         ├── main.jsx
@@ -26,45 +26,106 @@ curiosity-engine/
 
 ```bash
 cd backend
+
 python -m venv venv
 source venv/bin/activate      # Windows: venv\Scripts\activate
+
 pip install -r requirements.txt
 
-# Create .env file
-echo "GROQ_API_KEY=your_key_here" > .env
-
-uvicorn main:app --reload
-# Running at http://localhost:8000
+# Create .env file and add your API keys
+touch .env
 ```
+
+Add the following to `.env`:
+
+```
+GROQ_API_KEY=your_groq_api_key
+TAVILY_API_KEY=your_tavily_api_key
+```
+
+Run the backend:
+
+```bash
+uvicorn main:app --reload
+```
+
+Backend runs at:
+
+```
+http://localhost:8000
+```
+
+Interactive API docs:
+
+```
+http://localhost:8000/docs
+```
+
+---
 
 ### 2. Frontend
 
 ```bash
-# From the project root — scaffold once with Vite
-npm create vite@latest frontend -- --template react
 cd frontend
 
-# Replace the generated src/ folder with the provided src/ files, then:
 npm install
 npm run dev
-# Running at http://localhost:5173
 ```
+
+Frontend runs at:
+
+```
+http://localhost:5173
+```
+
+Make sure the frontend API URL points to the backend:
+
+```javascript
+const API = "http://localhost:8000";
+```
+
+For deployment replace it with:
+
+```javascript
+const API = "https://curiosityengine.onrender.com";
+```
+
+---
 
 ## How it works
 
-| Endpoint | What it does |
-|---|---|
-| `POST /generate` | Sends your content to Groqe, returns 5 questions across Bloom's levels |
-| `POST /evaluate` | Scores your question on depth + relevance, returns a stronger rewrite |
-| `POST /followup` | Takes your answer, returns 2 deeper follow-up questions |
-| `GET /session/:id` | Returns the list of questions you've asked this session |
+| Endpoint            | What it does                                                                         |
+| ------------------- | ------------------------------------------------------------------------------------ |
+| `POST /upload`      | Upload a `.txt` or `.pdf` file and extract its text                                  |
+| `POST /topic`       | Generates a 400–600 word educational summary using Tavily web search + Groq          |
+| `POST /generate`    | Sends your content to the LLM and returns 5 questions|
+| `POST /evaluate`    | Scores a student's question on depth and relevance and suggests a stronger rewrite   |
+| `POST /followup`    | Takes a student's answer and generates 2 deeper follow-up questions                  |
+| `GET /session/{id}` | Returns the list of questions asked in the current session                           |
 
-All session state is stored in a Python dict in memory — no database needed.
+Session state is stored in memory using a Python dictionary — no database required.
+
+---
 
 ## Usage flow
 
-1. Paste a lesson or article into the content box
-2. Click **Generate questions** — LLM produces 5 questions from recall to evaluation level
-3. Click any question to copy it into the input, or write your own
-4. Click **Evaluate my question** — LLM scores it and shows a stronger version
-5. Write your answer to the stronger question, then click **Go deeper** for follow-up prompts
+1. Provide learning material by:
+
+   * Pasting text
+   * Uploading a `.pdf` or `.txt`
+   * Entering a topic
+
+2. Click **Generate Questions** to produce 5 Socratic questions across Bloom’s taxonomy levels.
+
+3. Select a generated question or write your own.
+
+4. Click **Evaluate My Question** to receive:
+
+   * Depth score
+   * Relevance score
+   * Explanation
+   * A stronger rewritten question
+   * Bloom's taxonomy level
+
+5. Answer the improved question and click **Go Deeper** to generate follow-up questions that push your reasoning further.
+
